@@ -1,0 +1,18 @@
+version = 0.1
+
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "smart-ats-stack"
+resolve_s3 = true
+s3_prefix = "smart-ats"
+region = "us-east-1"
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "Environment=dev CognitoUserEmail=admin@smartats.com"
+confirm_changeset = true
+disable_rollback = false
+
+[default.build]
+[default.build.parameters]
+cached = true
+parallel = true

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Smart ATS</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+    <div class="container">
+        <header class="dashboard-header">
+            <div>
+                <h1>🎯 Smart ATS Dashboard</h1>
+                <p>Welcome, {{ username }}!</p>
+            </div>
+            <div>
+                <a href="{{ url_for('logout') }}" class="btn btn-secondary">Logout</a>
+            </div>
+        </header>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <main>
+            <section class="upload-section">
+                <h2>Upload New CV</h2>
+                <form id="uploadForm" enctype="multipart/form-data">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="job_position">Job Position</label>
+                            <input type="text" id="job_position" name="job_position"
+                                placeholder="e.g. Software Engineer" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="cv_file">CV File (PDF, DOC, DOCX)</label>
+                            <input type="file" id="cv_file" name="cv_file" accept=".pdf,.doc,.docx" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Upload CV</button>
+                </form>
+            </section>
+
+            <section class="candidates-section">
+                <h2>Candidate Rankings</h2>
+
+                {% if candidates %}
+                <div class="table-container">
+                    <table class="candidates-table">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Candidate Name</th>
+                                <th>Position</th>
+                                <th>Score</th>
+                                <th>Skills Match</th>
+                                <th>Status</th>
+                                <th>Upload Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for candidate in candidates %}
+                            <tr class="candidate-row">
+                                <td class="rank">{{ loop.index }}</td>
+                                <td><strong>{{ candidate.candidate_name }}</strong></td>
+                                <td>{{ candidate.job_position }}</td>
+                                <td class="score">{{ candidate.ranking_score | round(1) }}%</td>
+                                <td>{{ candidate.skills_matched | default('N/A') }}</td>
+                                <td>
+                                    <span class="badge badge-{{ candidate.status | default('pending') }}">
+                                        {{ candidate.status | default('Pending') | title }}
+                                    </span>
+                                </td>
+                                <td>{{ candidate.upload_date }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <p>📭 No candidates yet. Upload a CV to get started!</p>
+                </div>
+                {% endif %}
+            </section>
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+
+</html>

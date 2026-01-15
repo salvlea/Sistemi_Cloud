@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart ATS - Home</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎯 Smart ATS</h1>
+            <p class="subtitle">Intelligent Applicant Tracking System</p>
+        </header>
+        
+        <main class="hero">
+            <div class="hero-content">
+                <h2>Streamline Your Recruitment Process</h2>
+                <p>Automatically analyze, rank, and manage job candidates with AI-powered CV screening.</p>
+                
+                <div class="cta-buttons">
+                    <a href="{{ url_for('login') }}" class="btn btn-primary">Recruiter Login</a>
+                    <a href="#features" class="btn btn-secondary">Learn More</a>
+                </div>
+            </div>
+        </main>
+        
+        <section id="features" class="features">
+            <h3>Key Features</h3>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div class="icon">📄</div>
+                    <h4>Automated CV Processing</h4>
+                    <p>Upload CVs and let our system extract and analyze candidate information.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">🏆</div>
+                    <h4>Smart Ranking</h4>
+                    <p>Candidates are automatically ranked based on job requirements.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">☁️</div>
+                    <h4>Cloud-Native</h4>
+                    <p>Built on AWS serverless architecture for scalability and reliability.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">🔒</div>
+                    <h4>Secure Access</h4>
+                    <p>Protected by AWS Cognito authentication and encryption.</p>
+                </div>
+            </div>
+        </section>
+        
+        <footer>
+            <p>&copy; 2026 Smart ATS - Salvatore Leanza</p>
+        </footer>
+    </div>
+</body>
+</html>
