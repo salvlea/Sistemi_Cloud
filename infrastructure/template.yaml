@@ -21,7 +21,7 @@ Globals:
   Function:
     Timeout: 300
     MemorySize: 512
-    Runtime: python3.9
+    Runtime: python3.13
     Environment:
       Variables:
         ENVIRONMENT: !Ref Environment
@@ -46,15 +46,6 @@ Resources:
           - Id: DeleteOldVersions
             Status: Enabled
             NoncurrentVersionExpirationInDays: 90
-      NotificationConfiguration:
-        QueueConfigurations:
-          - Event: s3:ObjectCreated:*
-            Queue: !GetAtt CVProcessingQueue.Arn
-            Filter:
-              S3Key:
-                Rules:
-                  - Name: prefix
-                    Value: cvs/
       Tags:
         - Key: Project
           Value: SmartATS
@@ -186,8 +177,6 @@ Resources:
         AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
         AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key'"
         AllowOrigin: "'*'"
-      Tags:
-        Project: SmartATS
 
   # Placeholder API Lambda (for future API endpoints)
   ApiHandlerFunction:
@@ -240,9 +229,6 @@ Resources:
       UserAttributeUpdateSettings:
         AttributesRequireVerificationBeforeUpdate:
           - email
-      Tags:
-        - Key: Project
-          Value: SmartATS
 
   UserPoolClient:
     Type: AWS::Cognito::UserPoolClient
