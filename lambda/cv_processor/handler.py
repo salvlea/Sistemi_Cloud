@@ -2,6 +2,7 @@ import json
 import boto3
 import os
 from datetime import datetime
+from decimal import Decimal
 from utils.cv_parser import CVParser
 from utils.ranking_engine import RankingEngine
 
@@ -62,9 +63,9 @@ def lambda_handler(event, context):
                 'email': cv_data.get('email', 'N/A'),
                 'phone': cv_data.get('phone', 'N/A'),
                 'job_position': job_position,
-                'ranking_score': ranking_score,
+                'ranking_score': Decimal(str(ranking_score)),  # Convert float to Decimal
                 'skills_matched': skills_matched,
-                'experience_years': cv_data.get('experience_years', 0),
+                'experience_years': Decimal(str(cv_data.get('experience_years', 0))),  # Convert to Decimal
                 'education': cv_data.get('education', 'N/A'),
                 'skills': cv_data.get('skills', []),
                 's3_bucket': bucket,
