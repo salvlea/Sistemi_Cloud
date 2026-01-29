@@ -1,0 +1,247 @@
+name: CI/CD Pipeline - Smart ATS
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+
+env:
+  AWS_REGION: us-east-1
+  PYTHON_VERSION: '3.13'
+
+jobs:
+  # ============================================
+  # JOB 1: Lint and Unit Tests
+  # ============================================
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Install dependencies
+        run: |
+          cd lambda/cv_processor
+          pip install -r requirements.txt
+          pip install pytest pytest-cov
+      
+      - name: Run unit tests
+        run: |
+          cd lambda/cv_processor
+          pytest tests/ -v --cov=. --cov-report=term-missing
+      
+      - name: Lint with flake8
+        run: |
+          pip install flake8
+          flake8 lambda/cv_processor --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 lambda/cv_processor --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+  # ============================================
+  # JOB 2: SAM Validate
+  # ============================================
+  validate:
+    name: Validate SAM Template
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Install SAM CLI
+        run: |
+          pip install aws-sam-cli
+      
+      - name: Validate SAM template
+        run: |
+          cd infrastructure
+          sam validate --lint
+
+  # ============================================
+  # JOB 3: Deploy to Development
+  # ============================================
+  deploy-dev:
+    name: Deploy to Development
+    runs-on: ubuntu-latest
+    needs: [test, validate]
+    if: github.ref == 'refs/heads/develop'
+    environment:
+      name: development
+      url: https://dev.smartats.example.com
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Install SAM CLI
+        run: pip install aws-sam-cli
+      
+      - name: SAM Build
+        run: |
+          cd infrastructure
+          sam build --use-container --parallel
+      
+      - name: SAM Deploy to Dev
+        run: |
+          cd infrastructure
+          sam deploy \
+            --stack-name smart-ats-stack-dev \
+            --region ${{ env.AWS_REGION }} \
+            --parameter-overrides Environment=dev \
+            --capabilities CAPABILITY_IAM \
+            --no-fail-on-empty-changeset \
+            --resolve-s3 \
+            --no-confirm-changeset
+      
+      - name: Get Stack Outputs
+        id: stack-outputs
+        run: |
+          OUTPUTS=$(aws cloudformation describe-stacks \
+            --stack-name smart-ats-stack-dev \
+            --region ${{ env.AWS_REGION }} \
+            --query 'Stacks[0].Outputs' \
+            --output json)
+          echo "outputs=$OUTPUTS" >> $GITHUB_OUTPUT
+      
+      - name: Run Integration Tests
+        run: |
+          pip install boto3 pytest
+          export AWS_REGION=${{ env.AWS_REGION }}
+          pytest tests/integration/ -v
+
+  # ============================================
+  # JOB 4: Deploy to Production
+  # ============================================
+  deploy-prod:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [test, validate]
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: production
+      url: https://smartats.example.com
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_PROD }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_PROD }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Install SAM CLI
+        run: pip install aws-sam-cli
+      
+      - name: SAM Build
+        run: |
+          cd infrastructure
+          sam build --use-container --parallel
+      
+      - name: SAM Deploy to Production
+        run: |
+          cd infrastructure
+          sam deploy \
+            --stack-name smart-ats-stack-prod \
+            --region ${{ env.AWS_REGION }} \
+            --parameter-overrides Environment=prod \
+            --capabilities CAPABILITY_IAM \
+            --no-fail-on-empty-changeset \
+            --resolve-s3 \
+            --no-confirm-changeset
+      
+      - name: Smoke Tests
+        run: |
+          # Get API endpoint
+          API_URL=$(aws cloudformation describe-stacks \
+            --stack-name smart-ats-stack-prod \
+            --region ${{ env.AWS_REGION }} \
+            --query 'Stacks[0].Outputs[?OutputKey==`ApiEndpoint`].OutputValue' \
+            --output text)
+          
+          # Test health endpoint
+          curl -f $API_URL/health || exit 1
+      
+      - name: Create GitHub Release
+        if: success()
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ github.run_number }}
+          release_name: Release ${{ github.run_number }}
+          body: |
+            Automated release from CI/CD pipeline
+            
+            Deployed to production environment
+            Commit: ${{ github.sha }}
+          draft: false
+          prerelease: false
+
+  # ============================================
+  # JOB 5: Security Scan
+  # ============================================
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Run Checkov (IaC security scan)
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: infrastructure/
+          framework: cloudformation
+          soft_fail: true
+      
+      - name: Python Security Scan (Bandit)
+        run: |
+          pip install bandit
+          bandit -r lambda/ -f json -o bandit-report.json || true
+      
+      - name: Upload Security Reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-reports
+          path: |
+            bandit-report.json
+            results.sarif
