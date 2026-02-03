@@ -6,17 +6,6 @@
 
 ---
 
-##  Indice
-
-1. [Introduzione al Progetto](#introduzione)
-2. [Architettura Cloud-Native](#architettura)
-3. [Tecnologie AWS Utilizzate](#tecnologie-aws)
-4. [Implementazione Dettagliata](#implementazione)
-5. [Sicurezza e Best Practices](#sicurezza)
-6. [Testing e Deployment](#testing)
-7. [Dimostrazione Pratica](#dimostrazione)
-
----
 
 ## 1. Introduzione al Progetto 
 

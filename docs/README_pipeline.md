@@ -10,7 +10,7 @@ La pipeline automatizza:
 - **Deployment**: Deploy automatico su AWS (dev/prod)
 - **Monitoring**: Smoke tests post-deployment
 
-## 📋 Workflow 
+##  Workflow 
 
 ### 1. Test (`test`)
 - Esegue unit tests con pytest
@@ -37,7 +37,7 @@ La pipeline automatizza:
 - Scansione Python con Bandit
 - Upload report come artifact
 
-## 🔐 Credenziali Richieste
+##  Credenziali Richieste
 
 Configurare in **Settings → Secrets and variables → Actions**:
 

@@ -2,7 +2,7 @@
 
 Sistema **Cloud-Native Serverless** per l'automazione della selezione dei candidati basato su architettura **AWS Event-Driven**, con ranking intelligente dei CV e pipeline CI/CD completa.
 
-per informazioni più dettagliate consultare - `.doc/README_spiegazione_progetto.md`
+per informazioni più dettagliate consultare - `doc/README_spiegazione_progetto.md`
 --- 
 
 ## Panoramica
@@ -27,13 +27,14 @@ Smart ATS automatizza il processo di screening CV utilizzando:
        ▼
 ┌─────────────────────────────────────────────────────┐
 │           AWS Cognito User Pool                     │
-│  - Autenticazione JWT                               │
-│  - User: admin@smartats.com                         │
+│  - Autenticazione                                   │
+│  - User: admin@smartats.com                         |
+|  - Password: SmartATS2026!                          |                           
 └──────────────────────┬──────────────────────────────┘
                        │
                        ▼
 ┌─────────────────────────────────────────────────────┐
-│        Flask Application (Docker + Gunicorn)        │
+│        Flask Application                            │
 │  - Dashboard per upload CV                          │
 │  - Visualizzazione ranking candidati                │
 └──────┬──────────────────────────┬───────────────────┘
@@ -147,7 +148,7 @@ git push origin main
 ├── .github/
 │   └── workflows/
 │       ├── deploy.yml          # Pipeline CI/CD
-│       └── README.md           # Docs pipeline
+│       └── README.md           
 ├── docs/                       # Documentazione
 │   ├── architecture.md
 │   ├── api_specs.md
@@ -159,11 +160,11 @@ git push origin main
 │   ├── static/
 │   ├── Dockerfile
 │   └── requirements.txt
-├── infrastructure/             # AWS SAM
-│   ├── template.yaml           # CloudFormation
+├── infrastructure/             # AWS 
+│   ├── template.yaml           
 │   ├── samconfig.toml
 │   └── parameters.json
-├── lambda/                     # Lambda functions
+├── lambda/                   
 │   └── cv_processor/
 │       ├── handler.py
 │       ├── utils/
@@ -171,11 +172,11 @@ git push origin main
 │       │   └── ranking_engine.py
 │       ├── tests/              # Unit tests
 │       └── requirements.txt
-├── scripts/                    # Utility scripts
+├── scripts/                    
 │   ├── deploy.sh
 │   ├── test_upload.py
 │   └── seed_dynamodb.py
-└── tests/                      # Integration tests
+└── tests/                      
     └── integration/
         └── test_aws_integration.py
 ```
