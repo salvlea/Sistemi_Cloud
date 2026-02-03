@@ -1,85 +1,106 @@
-# 🎯 Smart ATS - Applicant Tracking System
-
-[![CI/CD Pipeline](https://github.com/salvlea/Sistemi_Cloud/actions/workflows/deploy.yml/badge.svg)](https://github.com/salvlea/Sistemi_Cloud/actions)
-[![AWS](https://img.shields.io/badge/AWS-Deployed-orange)](https://aws.amazon.com/)
-[![Python](https://img.shields.io/badge/Python-3.12-blue)](https://www.python.org/)
-[![Tests](https://img.shields.io/badge/Tests-22%20passed-success)](https://github.com/salvlea/Sistemi_Cloud/actions)
+#  Smart ATS 
 
 Sistema **Cloud-Native Serverless** per l'automazione della selezione dei candidati basato su architettura **AWS Event-Driven**, con ranking intelligente dei CV e pipeline CI/CD completa.
 
----
+per informazioni più dettagliate consultare - `.doc/README_spiegazione_progetto.md`
+--- 
 
 ## Panoramica
 
-Smart ATS automatizza il processo di screening CV utilizzando:
-- ⚡ **Processing asincrono** con Lambda & SQS
-- 🤖 **Ranking automatico** basato su skills, experience, education
-- 🔐 **Autenticazione** con AWS Cognito
-- 📊 **Dashboard web** per recruiter (Flask)
-- 🚀 **Deploy automatico** con GitHub Actions
+Smart ATS automatizza il processo di screening CV utilizzando:        
+-  **Processing asincrono** con Lambda & SQS
+-  **Ranking automatico** basato su skills, experience, education
+-  **Autenticazione** con AWS Cognito
+-  **Dashboard web** per recruiter (Flask)
+-  **Deploy automatico** con GitHub Actions
 
-**Stack Tecnologico**: AWS (S3, SQS, Lambda, DynamoDB, Cognito, API Gateway), Python, Flask, SAM
 
 ---
 
 ##  Architettura
 
 ```
-┌─────────────┐         ┌─────┐         ┌─────┐         ┌────────┐         ┌──────────┐
-│   Frontend  │────────▶│ S3  │────────▶│ SQS │────────▶│ Lambda │────────▶│ DynamoDB │
-│   (Flask)   │  upload │ CVs │  event  │Queue│ trigger │   CV   │  store  │ Rankings │
-└─────────────┘         └─────┘         └─────┘         │Processor│        └──────────┘
-      │                                                   ────────┘             │
-      │ auth            ┌──────────┐                          │                 │
-      └────────────────▶│ Cognito  │                     ┌────┴────┐            │
-                        └──────────┘                     │PyPDF2   │            │
-                                                         │python   │            │
-                                                         │-docx    │            │
-                                                         └─────────┘            │
-                                                                                │
-                        ┌──────────┐◀──────────────────────────────────────────-┘
-                        │   API    │           query
-                        │ Gateway  │
-                        └──────────┘
+┌─────────────┐
+│   Browser   │ Recruiter accede via web
+└──────┬──────┘
+       │
+       ▼
+┌─────────────────────────────────────────────────────┐
+│           AWS Cognito User Pool                     │
+│  - Autenticazione JWT                               │
+│  - User: admin@smartats.com                         │
+└──────────────────────┬──────────────────────────────┘
+                       │
+                       ▼
+┌─────────────────────────────────────────────────────┐
+│        Flask Application (Docker + Gunicorn)        │
+│  - Dashboard per upload CV                          │
+│  - Visualizzazione ranking candidati                │
+└──────┬──────────────────────────┬───────────────────┘
+       │                          │
+       │ Upload CV                │ Query candidati
+       ▼                          ▼
+┌──────────────┐          ┌──────────────────┐
+│  AWS S3      │          │   DynamoDB       │
+│  Bucket      │          │   Table          │
+│              │          │                  │
+│ smart-ats-   │◄─────────│ Candidati        │
+│ cvs-dev-*    │  Legge   │ processati       │
+└──────┬───────┘          └──────▲───────────┘
+       │                         │
+       │ S3 Event                │ Scrive
+       │ Notification            │ risultati
+       ▼                         │
+┌──────────────┐                 │
+│  AWS SQS     │                 │
+│  Queue       │                 │
+│              │                 │
+│ cv-queue-dev │                 │
+└──────┬───────┘                 │
+       │                         │
+       │ Trigger                 │
+       ▼                         │
+┌──────────────────────────────┐ │
+│   AWS Lambda Function        │ │
+│   smart-ats-cv-processor     │─┘
+│                              │
+│  1. Download CV da S3        │
+│  2. Parse PDF/DOCX           │
+│  3. Extract info (skills...) │
+│  4. Calculate ranking score  │
+│  5. Write to DynamoDB        │
+└──────────────────────────────┘
 ```
 
 ### Event-Driven Flow
 
 1. **Upload** → Recruiter carica CV su S3 via dashboard
-2. **Trigger** → S3 event notification → SQS queue
+2. **Trigger** → notifica del evento S3 → coda SQS 
 3. **Process** → SQS triggera Lambda function
-4. **Parse** → Lambda estrae: nome, email, skills, experience, education
-5. **Rank** → Algoritmo calcola score pesato (skills 60%, experience 30%, education 10%)
+4. **Parse** → Lambda estrae: nome, email, skills, esperienza, formazione
+5. **Rank** → Algoritmo calcola score pesato (skills 60%, esperienza 30%, formazione 10%)
 6. **Store** → Risultati salvati in DynamoDB
-7. **Display** → Dashboard mostra candidati ranked
+7. **Display** → Dashboard mostra candidati 
 
 ---
 
-## ☁️ Servizi AWS (7 integrati)
+##  Servizi AWS (7 integrati)
 
-| Servizio | Utilizzo | Configurazione |
-|----------|----------|----------------|
-| **S3** | Storage CV | Versioning + Encryption + Event Notifications |
-| **SQS** | Event Queue | Standard Queue + DLQ, Visibility 15min |
-| **Lambda** | CV Processing | Python 3.13, 512MB, Timeout 5min |
-| **DynamoDB** | Database Rankings | GSI per job position, Encryption at-rest |
-| **Cognito** | Authentication | User Pool per recruiter |
-| **API Gateway** | REST API | Lambda proxy integration |
-| **CloudWatch** | Monitoring | Logs + Metrics |
+| Servizio | Utilizzo | 
+| **S3** | Storage CV | 
+| **SQS** | Event Queue | 
+| **Lambda** | CV Processing | 
+| **DynamoDB** | Database Rankings | 
+| **Cognito** | Authentication | 
+| **API Gateway** | REST API | 
+| **CloudWatch** | Monitoring |
 
 ---
 
 
+ 
+##  Setup & Installatione
 
-##  Setup & Installation
-
-### Prerequisiti
-
-- Python 3.12+
-- AWS CLI configurato
-- AWS SAM CLI
-- Git
-- Docker (per SAM build)
 
 ### Quick Start
 
@@ -103,7 +124,7 @@ python3 app.py
 # Apri http://localhost:8080
 ```
 
-### Deployment Automatico (CI/CD)
+### Deployment Automatico (CI/CD) 
 
 ```bash
 # Push su main triggera automaticamente la pipeline
@@ -119,7 +140,7 @@ git push origin main
 
 
 
-## 📂 Struttura Progetto
+##  Struttura Progetto
 
 ```
 .
@@ -162,34 +183,10 @@ git push origin main
 ---
 
 
-## 🎯 Features Implementate
-
-### Core Functionality
-- ✅ Upload CV (PDF, DOCX, TXT)
-- ✅ Processing asincrono event-driven
-- ✅ Parsing automatico CV (nome, email, phone, skills, experience, education)
-- ✅ Ranking intelligente pesato per job position
-- ✅ Dashboard visualizzazione candidati
-- ✅ Autenticazione recruiter
-
-### DevOps
-- ✅ Infrastructure as Code (AWS SAM)
-- ✅ CI/CD pipeline (GitHub Actions)
-- ✅ Test automation (25 tests)
-- ✅ Security scanning
-- ✅ Automated deployment
-
-### Monitoring
-- ✅ CloudWatch Logs
-- ✅ Lambda metrics
-- ✅ Error tracking
-- ✅ DLQ per failed messages
-
----
 
 
 
-## 🚦 Come Iniziare
+##  Come Iniziare
 
 ### 1. Testa Localmente
 
